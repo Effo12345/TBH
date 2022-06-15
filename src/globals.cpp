@@ -15,7 +15,7 @@ Motor flywheel2(7, false, AbstractMotor::gearset::green, AbstractMotor::encoderU
 
 MotorGroup driveL({driveFL, driveBL});
 MotorGroup driveR({driveFR, driveBR});
-MotorGroup fw({flywheel1, flywheel2});
+MotorGroup flyWheel({flywheel1, flywheel2});
 
 pros::ADIEncoder leftEncoder(1, 2, false);
 pros::ADIEncoder rightEncoder(3, 4, false);

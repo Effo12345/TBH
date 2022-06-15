@@ -1,4 +1,8 @@
 #include "main.h"
+#include "globals.hpp"
+
+bool fwToggle = false;
+int fwVelocity = 2;
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -9,8 +13,8 @@
 
 void initialize() {
 	//Initialize PROS LCD
-	//pros::lcd::initialize();
-	grapher.initGraph();
+	pros::lcd::initialize();
+	//grapher.initGraph();
 }
 
 /**
@@ -64,6 +68,29 @@ void opcontrol() {
 		//Interface values with standard output
 		if(master[ControllerDigital::left].changedToPressed())
 			interface.update();
+
+		//Calculate flywheel velocity
+		//This is placed before the toggle so that the controlVelocity() function
+		//does not set the velocity to a value after it has already been set to
+		//0 and the check for fwToggle is not performed.
+		if(fwToggle)
+			fw.controlVelocity();
+
+		//Start and stop the flywheel with a toggle
+		if(master[ControllerDigital::A].changedToPressed()) {
+			fwToggle = !fwToggle;
+			if(fwToggle)
+				fw.setVelocity(fwVelocity);
+			else
+				flyWheel.moveVoltage(0);
+		}
+
+		//Incriment flywheel velocity by 2 based on the B button
+		if(master[ControllerDigital::B].changedToPressed()) {
+			fwVelocity += 2;
+			fw.setVelocity(fwVelocity);
+		}
+			
 
 		pros::delay(20);
 	}

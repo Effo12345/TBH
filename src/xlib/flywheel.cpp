@@ -1,57 +1,65 @@
 #include "flywheel.hpp"
 
-int targetVelocity = 0;
-float driveApprox = 0.0f;
-bool firstCross = false;
-float driveAtZero = 0.0f;
-float currentError;
-float prevError;
-float drive = 0.0f;
+namespace xlib {
+    void Flywheel::setVelocity(int velocity, float predicted_drive) {
+        targetVelocity = velocity;
 
-double gain = 0.00025f;
+        currentError = targetVelocity - flyWheel.getActualVelocity();
+        prevError = currentError;
 
-void FwVelocitySet(int velocity, float predicted_drive) {
-    targetVelocity = velocity;
+        driveApprox = predicted_drive;
 
-    currentError = targetVelocity - fw.getActualVelocity();
-    prevError = currentError;
-
-    driveApprox = predicted_drive;
-
-    firstCross = true;
-    driveAtZero = 0;
-}
-
-void FWControlVelocity() {
-    currentError = targetVelocity - fw.getActualVelocity();
-
-    drive = drive + (currentError * gain);
-    
-    drive = std::clamp(drive, 0.0f, 1.0f);
-
-    if(sgn(currentError) != sgn(prevError)) {
-        if(firstCross) {
-            drive = driveApprox;
-            firstCross = false;
-        }
-        else
-            drive = 0.5 * (drive + driveAtZero);
-
-        driveAtZero = drive;
+        firstCross = true;
+        driveAtZero = 0;
     }
-    prevError = currentError;
 
-    fw.moveVoltage(drive * MAX_VOLTAGE);
+    void Flywheel::setVelocity(int velocity) {
+        targetVelocity = velocity;
 
-    grapher.newData(targetVelocity, 0);
-    grapher.newData(fw.getActualVelocity(), 1);
-}
+        currentError = targetVelocity - flyWheel.getActualVelocity();
+        prevError = currentError;
 
-void FWSetGain(double newGain) {
-    gain = newGain;
-    return;
-}
+        driveApprox = targetVelocity / 200;
 
-double FWGetGain() {
-    return gain;
+        firstCross = true;
+        driveAtZero = 0;
+    }
+
+    void Flywheel::controlVelocity() {
+        currentError = targetVelocity - flyWheel.getActualVelocity();
+
+        drive = drive + (currentError * gain);
+
+        drive = std::clamp(drive, 0.0f, 1.0f);
+
+        if(sgn(currentError) != sgn(prevError)) {
+            if(firstCross) {
+                drive = driveApprox;
+                firstCross = false;
+            }
+            else
+                drive = 0.5 * (drive + driveAtZero);
+
+            driveAtZero = drive;
+        }
+        prevError = currentError;
+
+        flyWheel.moveVoltage(drive * MAX_VOLTAGE);
+
+        //grapher.newData(targetVelocity, 0);
+        //grapher.newData(flyWheel.getActualVelocity(), 1);
+        pros::lcd::set_text(1, "Target: " + std::to_string(targetVelocity));
+        pros::lcd::set_text(2, "Actual: " + std::to_string(flyWheel.getActualVelocity()));
+    }
+
+    void Flywheel::setGain(double newGain) {
+        gain = newGain;
+        return;
+    }
+
+    double Flywheel::getGain() {
+        return gain;
+    }
+
+    Flywheel fw;
 }

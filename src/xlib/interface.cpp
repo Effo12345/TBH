@@ -12,12 +12,12 @@ namespace xlib {
         std::cin >> input;
 
         if(input == "update_gain") {
-            std::cout << "Current gain: " << FWGetGain() << "\n";
+            std::cout << "Current gain: " << fw.getGain() << "\n";
             std::cout << "Enter new gain: ";
             double gain;
             std::cin >> gain;
-            FWSetGain(gain);
-            std::cout << "Gain set as " << FWGetGain() << "\n";
+            fw.setGain(gain);
+            std::cout << "Gain set as " << fw.getGain() << "\n";
         } else if(input == "clear_graph") {
             std::cout << "Clearing graph...";
             grapher.clearGraph();
