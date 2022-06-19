@@ -48,8 +48,8 @@ namespace xlib {
 
         //grapher.newData(targetVelocity, 0);
         //grapher.newData(flyWheel.getActualVelocity(), 1);
-        pros::lcd::set_text(1, "Target: " + std::to_string(targetVelocity));
-        pros::lcd::set_text(2, "Actual: " + std::to_string(flyWheel.getActualVelocity()));
+        pros::lcd::set_text(0, "Target: " + std::to_string(targetVelocity));
+        pros::lcd::set_text(1, "Actual: " + std::to_string(flyWheel.getActualVelocity()));
     }
 
     void Flywheel::setGain(double newGain) {

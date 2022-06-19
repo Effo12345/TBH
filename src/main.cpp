@@ -69,20 +69,13 @@ void opcontrol() {
 		if(master[ControllerDigital::left].changedToPressed())
 			interface.update();
 
-		//Calculate flywheel velocity
-		//This is placed before the toggle so that the controlVelocity() function
-		//does not set the velocity to a value after it has already been set to
-		//0 and the check for fwToggle is not performed.
-		if(fwToggle)
-			fw.controlVelocity();
-
 		//Start and stop the flywheel with a toggle
 		if(master[ControllerDigital::A].changedToPressed()) {
 			fwToggle = !fwToggle;
 			if(fwToggle)
 				fw.setVelocity(fwVelocity);
 			else
-				flyWheel.moveVoltage(0);
+				fw.setVelocity(0);
 		}
 
 		//Incriment flywheel velocity by 2 based on the B button
@@ -90,6 +83,9 @@ void opcontrol() {
 			fwVelocity += 2;
 			fw.setVelocity(fwVelocity);
 		}
+
+		//Control flywheel velocity based on value set above
+		fw.controlVelocity();
 			
 
 		pros::delay(20);
