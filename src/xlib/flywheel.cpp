@@ -1,65 +1,101 @@
-#include "flywheel.hpp"
+#include "xlib/flywheel.hpp"
+
+//Template sign function
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+/*
+ * The flywheel class implements the Take Back Half (TBH) velocity control
+ * algorithm. It takes in a target velocity and operates asynchronously by
+ * inheriting from the TaskWrapper to keep the flywheel's velocity as steady
+ * as possible. It runs off of a direct drive motor.
+ */
 
 namespace xlib {
-    void Flywheel::setVelocity(int velocity, float predicted_drive) {
+    //Set class variables based on input
+    void Flywheel::moveVelocity(int velocity, float predicted_drive) {
+        if(!active)
+            init();
+
         targetVelocity = velocity;
 
-        currentError = targetVelocity - flyWheel.getActualVelocity();
+        currentError = targetVelocity - (getActualVelocity() * 18);
         prevError = currentError;
 
-        driveApprox = predicted_drive;
+        //If the predicted drive is unset, set driveApprox to a decent estimate
+        //of the target velocity.
+        if(predicted_drive == -1)
+            driveApprox = targetVelocity / 3600;
+        //Otherwise, set the drivaApprox value correctly
+        else
+            driveApprox = predicted_drive;
 
         firstCross = true;
         driveAtZero = 0;
     }
 
-    void Flywheel::setVelocity(int velocity) {
-        targetVelocity = velocity;
-
-        currentError = targetVelocity - flyWheel.getActualVelocity();
-        prevError = currentError;
-
-        driveApprox = targetVelocity / 200;
-
-        firstCross = true;
-        driveAtZero = 0;
-    }
-
-    void Flywheel::controlVelocity() {
-        currentError = targetVelocity - flyWheel.getActualVelocity();
-
-        drive = drive + (currentError * gain);
-
-        drive = std::clamp(drive, 0.0f, 1.0f);
-
-        if(sgn(currentError) != sgn(prevError)) {
-            if(firstCross) {
-                drive = driveApprox;
-                firstCross = false;
+    //Based on the TaskWrapper, loop is called by startTask()
+    //Running asynchronously, this function computes the desired flywheel velocity
+    //and sets the motor base class to the correct voltage
+    void Flywheel::loop() {       
+        while(true) {
+            //If the flywheel should spin backwards, set it to negative voltage
+            //and continue
+            if(doBackSpin) {
+                moveVoltage(-12000);
+                continue;
             }
-            else
-                drive = 0.5 * (drive + driveAtZero);
 
-            driveAtZero = drive;
+            //Green motor by default, multiply by 18 to scale to 3600 RPM
+            currentError = targetVelocity - (getActualVelocity() * 18);
+
+            drive = drive + (currentError * gain);
+
+            drive = std::clamp(drive, 0.0f, 1.0f);
+
+            if(sgn(currentError) != sgn(prevError)) {
+                if(firstCross) {
+                    drive = driveApprox;
+                    firstCross = false;
+                }
+                else
+                    drive = 0.5 * (drive + driveAtZero);
+
+                driveAtZero = drive;
+            }
+            prevError = currentError;
+
+            moveVoltage(drive * 12000);
+
+            grapher.newData(targetVelocity, 0);
+            grapher.newData((getActualVelocity() * 18), 1);
+
+            pros::delay(20);
         }
-        prevError = currentError;
-
-        flyWheel.moveVoltage(drive * MAX_VOLTAGE);
-
-        //grapher.newData(targetVelocity, 0);
-        //grapher.newData(flyWheel.getActualVelocity(), 1);
-        pros::lcd::set_text(0, "Target: " + std::to_string(targetVelocity));
-        pros::lcd::set_text(1, "Actual: " + std::to_string(flyWheel.getActualVelocity()));
     }
 
-    void Flywheel::setGain(double newGain) {
-        gain = newGain;
-        return;
+    //Initialize dependencies
+    void Flywheel::init() {
+        grapher.initGraph({0, 3600}, 250);
+        selector.setActive(false);
+        startTask();
+        active = true;
     }
 
-    double Flywheel::getGain() {
-        return gain;
+    void Flywheel::stop() {
+        moveVoltage(0);
+        //fclose(tbhTelem);
     }
 
-    Flywheel fw;
+    void Flywheel::toggleReverse() {
+        if(!active)
+            init();
+
+        doBackSpin = !doBackSpin;
+    }
+
+    Flywheel::Flywheel(std::int8_t iport, float igain, Selector& sel)
+        : okapi::Motor{iport}, //Calls the constructor for okapi::Motor 
+          gain{igain}, selector{sel} {}
 }

@@ -79,8 +79,6 @@ void opcontrol(void);
 #include <iostream>
 #include <array>
 #include <optional>
-
-#include "xlib/api.hpp"
 #endif
 
 #endif  // _PROS_MAIN_H_
